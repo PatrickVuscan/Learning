@@ -4,12 +4,17 @@ Patrick Vuscan
 
 Last Updated: *January 9th, 2022*
 
+[Created from watching Docker+Kubernetes tutorial by Amigoscode!](https://youtu.be/bhBSlnQcq2k)
+
 # Contents
 - [Introduction](#introduction)
 - [Containers vs VMs](#containers-vs-vms)
 - [Docker Definitions](#docker-definitions)
 - [Dockerfiles](#dockerfiles)
 - [Docker Registries](#docker-registries)
+- [Docker Debugging](#docker-debugging)
+- [Kubernetes](#kubernetes)
+- [Kubernetes Basic Architecture](#kubernetes-basic-architecture)
 
 
 <br/>
@@ -321,3 +326,136 @@ For things like nginx, which is really a linux box, you can get into the linux m
 This is by using the command `docker exec -it containerIdOrName /bin/sh`.
 
 Note that we might not be able to use `bash` as we did elsewhere. To find what we *can* use, one option is to do the `docker inspect`, search in the results for `Cmd`, and see what shell was used for it, and call that.
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+# Kubernetes
+
+Kubernetes is the most popular **Container Orchestration Tool**, developed by Google, and open-sourced.
+
+It helps manage containerized applications in different deployment environments; physical, virtual, cloud, etc. These can be multiple containers that create one overarching application, or otherwise.
+
+<br/>
+
+## What problems does Kubernetes solve?
+
+There was a trend to move from Monolith to Microservice architecture, resulting in containerization. Now some apps are comprised of hundreds, even thousands of containers.
+
+Since these were difficult to manage through one's own scripts and tools, there was a need for a tool which properly managed these containers.
+
+Enter, Kubernetes.
+
+<br/>
+
+## What are the tasks of an orchestration tool?
+
+- High availability, or no downtime
+- Scalability or high performance
+  - Load fast, quick response time
+- Disaster recovery - backup and restore
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+# Kubernetes Basic Architecture
+
+![Kubernetes architecture](Images%20-%20Docker/KubernetesArchitecture.png)
+
+<br/>
+
+The kubernetes cluster is made up of at least one master/main node, and connected to it, many worker nodes.
+
+<br/>
+
+## Worker Nodes
+
+Each **worker** node has docker containers deployed on it, and also has a `kubelet` process running on it.
+
+The kubernetes `kubelet` process is what connects and communicates with other nodes, and allows the cluster to execute tasks across the nodes.
+
+<br/>
+
+## Main/Master Nodes
+
+On the **main/master** node, it runs several important kubernetes (K8s) processes that are necessary for running and managing the cluster.
+
+One of these includes an **API Server**, which is a container, and is the entrypoint to the K8s cluster. The UI, API and CLI talk to this API server.
+
+Another is the **Controller Manager**, which tracks what's going on in the cluster. Did something die, does something need to be fixed or restarted.
+
+There's also the **Scheduler**, responsible for scheduling different containers on different nodes, depending on the workload, and available server resources on each node. Another terminology for this is "ensuring Pod placement".
+
+Another is the **etcd**, the kubernetes backing key value storage, which holds the current state of the kubernetes cluster. Holds the configuration data and status data, of each node and each container in each node.
+
+Backups are actually done through snapshots of the **etcd**, since this contains all the information of the cluster.
+
+<br/>
+
+## Virtual Network
+
+![Virtual Network](Images%20-%20Docker/VirtualNetwork.png)
+
+One last important part of this architecture, is the **Virtual Network** which allows the main/master node(s?) and worker nodes to communicate amongst themselves. It is what creates one powerful unified machine from the sum of all the nodes.
+
+Worker nodes have the most load, because they're running the actual applications, and thus are usually given more resources.
+
+The main/master node is much more important than individual worker nodes, but is also much more lightweight. Because of it's importance, you usually have at least 2 mains/masters, so that if one goes down, you don't lose access to your cluster.
+
+<br/>
+<br/>
+<br/>
+<br/>
+<br/>
+
+# Kubernetes Components
+
+## Pod
+
+A pod is the smallest unit of K8s, essentially an abstraction layer over containers, so that it can work with other technologies, other than Docker.
+
+A pod typically only runs one container inside of it at a time, but you *can* run more than one.
+
+Each pod gets its own IP address in the virtual network, with which pods can communicate between themselves.
+
+Pods are **ephemeral**, as in they die very easily. If the container inside it crashes, or runs out of resources, the pod will die, and a new one will be created in its place. When this happens, a new IP address will be assigned to it on creation.
+
+Since these IPs can change as pods get recreated, we have a service component.
+
+<br/>
+
+## Service
+
+The **Service** component is a permanent IP address for each pod which persists through crashes, since the lifecycles of pods and services are **not connected.**
+
+There are both External and Internal services, differentiated by if we want their IPs exposed.
+
+Services are usually connected to by the IP of the node, and the port. This is usually something ugly like https://128.12.4.0:8080. We don't want to access our apps by these types of things, do we?
+
+<br/>
+
+## Ingress
+
+This is where an **Ingress** component comes in. It essentially exposes an address like https://my-app.com for your pod, which when accessed, forwards requests to the pod's **Service** component
+
+<br/>
+
+## ConfigMap
+
+The **ConfigMap** component is an external configuration of your application attached to a Pod, which can be used so that for small changes like a database URL, you don't have to re-build your repo, push to the repo, pull into the pod, etc.
+
+You should not put credentials into a ConfigMap, since these are stored in plaintext.
+
+<br/>
+
+## Secret
+
+The **Secret** component is a response to needing external config secrets which are *not* stored in plaintext, but rather in base64, for a pod.
+
+One note, the built-in security mechanism is not enabled by default!
